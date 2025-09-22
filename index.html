@@ -3,33 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Objectives Tracker</title>
+    <title>Daily Objectives Tracker - Griffin Waste Services</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1 { text-align: center; }
-        #task-form { margin-bottom: 20px; }
-        #task-input { width: 70%; padding: 8px; }
-        #add-task { padding: 8px 16px; }
-        #tasks { list-style: none; padding: 0; }
-        #tasks li { padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
-        #tasks li.completed { text-decoration: line-through; background-color: #f0f0f0; }
-        .status-select { padding: 5px; }
-        #auth-section { margin-bottom: 20px; }
-        #start-btn { padding: 8px 16px; margin-right: 10px; }
-        button { cursor: pointer; }
-        #auth-message { color: red; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f8f9fa; 
+            color: #333;
+        }
+        h1 { 
+            text-align: center; 
+            color: #e30613; /* Red from Charlotte/Griffin theme */
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        #logo {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 300px;
+            height: auto;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
+        }
+        #task-form { 
+            margin-bottom: 20px; 
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #task-input, #assignee-select { 
+            flex: 1; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 16px;
+            min-width: 200px;
+        }
+        #add-task { 
+            padding: 12px 20px; 
+            background-color: #e30613; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #add-task:hover {
+            background-color: #b30410;
+        }
+        #tasks { 
+            list-style: none; 
+            padding: 0; 
+        }
+        #tasks li { 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        #tasks li:hover {
+            transform: translateY(-2px);
+        }
+        #tasks li.completed { 
+            text-decoration: line-through; 
+            background-color: #f0f8f0; 
+            border-color: #28a745;
+            opacity: 0.7;
+        }
+        .complete-btn {
+            padding: 8px 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .complete-btn:hover {
+            background-color: #218838;
+        }
+        .complete-btn.completed {
+            background-color: #6c757d;
+        }
+        .complete-btn.completed:hover {
+            background-color: #5a6268;
+        }
+        .delete-btn {
+            padding: 8px 16px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        #assignee-info {
+            font-style: italic;
+            color: #6c757d;
+            margin-left: 10px;
+        }
+        #auth-section { 
+            margin-bottom: 20px; 
+            text-align: center;
+        }
+        #user-email, #user-password { 
+            padding: 12px; 
+            margin: 5px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 16px;
+        }
+        button { 
+            padding: 12px 20px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #login-btn, #signup-btn {
+            background-color: #e30613;
+            color: white;
+            margin: 5px;
+        }
+        #login-btn:hover, #signup-btn:hover {
+            background-color: #b30410;
+        }
+        #logout-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        #logout-btn:hover {
+            background-color: #5a6268;
+        }
+        #auth-message { 
+            color: #dc3545; 
+            margin-top: 10px;
+        }
+        .user-list {
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .user-item {
+            display: inline-block;
+            background-color: #e30613;
+            color: white;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
+    <img id="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="Griffin Waste Services Logo" /> <!-- Placeholder; replace with actual logo URL or base64 -->
     <h1>Daily Objectives Tracker</h1>
     <div id="auth-section">
-        <button id="start-btn">Start Session (Anonymous)</button>
+        <input type="email" id="user-email" placeholder="Email">
+        <input type="password" id="user-password" placeholder="Password">
+        <button id="login-btn">Login</button>
+        <button id="signup-btn">Sign Up</button>
         <button id="logout-btn" style="display: none;">Logout</button>
         <p id="auth-message"></p>
     </div>
     <div id="task-section" style="display: none;">
+        <div id="users-section" class="user-list" style="display: none;">
+            <h3>Team Members</h3>
+            <div id="user-list"></div>
+        </div>
         <form id="task-form">
             <input type="text" id="task-input" placeholder="Add a new objective..." required>
+            <select id="assignee-select">
+                <option value="">Select Assignee</option>
+            </select>
             <button type="submit" id="add-task">Add</button>
         </form>
         <ul id="tasks"></ul>
@@ -49,26 +211,33 @@
 
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
-        import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
-        import { getDatabase, ref, push, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+        import { getDatabase, ref, push, onValue, update, remove, set } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getDatabase(app); // Renamed to avoid conflict
+        const db = getDatabase(app);
 
-        // Database reference
+        // Database references
         const tasksRef = ref(db, 'tasks');
+        const usersRef = ref(db, 'users');
 
         // DOM Elements
         const taskForm = document.getElementById('task-form');
         const taskInput = document.getElementById('task-input');
+        const assigneeSelect = document.getElementById('assignee-select');
         const tasksList = document.getElementById('tasks');
-        const startBtn = document.getElementById('start-btn');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
         const logoutBtn = document.getElementById('logout-btn');
+        const userEmail = document.getElementById('user-email');
+        const userPassword = document.getElementById('user-password');
         const authMessage = document.getElementById('auth-message');
         const taskSection = document.getElementById('task-section');
         const authSection = document.getElementById('auth-section');
+        const usersSection = document.getElementById('users-section');
+        const userList = document.getElementById('user-list');
 
         // Authentication state listener
         onAuthStateChanged(auth, (user) => {
@@ -76,21 +245,39 @@
                 authSection.style.display = 'none';
                 taskSection.style.display = 'block';
                 logoutBtn.style.display = 'inline-block';
+                usersSection.style.display = 'block';
+                loadUsers();
                 loadTasks();
+                loadAssignees(); // Populate assignee dropdown
             } else {
                 authSection.style.display = 'block';
                 taskSection.style.display = 'none';
                 logoutBtn.style.display = 'none';
+                usersSection.style.display = 'none';
                 tasksList.innerHTML = '';
+                userList.innerHTML = '';
                 authMessage.textContent = '';
             }
         });
 
-        // Start anonymous session
-        startBtn.addEventListener('click', async () => {
+        // Sign up
+        signupBtn.addEventListener('click', async () => {
             try {
-                await signInAnonymously(auth);
-                authMessage.textContent = 'Session started successfully!';
+                const { user } = await createUserWithEmailAndPassword(auth, userEmail.value, userPassword.value);
+                await set(ref(db, `users/${user.uid}`), { email: userEmail.value });
+                authMessage.textContent = 'Signed up successfully!';
+                userEmail.value = '';
+                userPassword.value = '';
+            } catch (error) {
+                authMessage.textContent = error.message;
+            }
+        });
+
+        // Login
+        loginBtn.addEventListener('click', async () => {
+            try {
+                await signInWithEmailAndPassword(auth, userEmail.value, userPassword.value);
+                authMessage.textContent = 'Logged in successfully!';
             } catch (error) {
                 authMessage.textContent = error.message;
             }
@@ -110,14 +297,47 @@
         taskForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const taskText = taskInput.value.trim();
+            const assigneeUid = assigneeSelect.value;
             if (taskText) {
                 push(tasksRef, {
                     text: taskText,
-                    status: 'pending'
+                    status: 'pending',
+                    assigneeUid: assigneeUid || null,
+                    assignedBy: auth.currentUser.uid,
+                    timestamp: Date.now()
                 });
                 taskInput.value = '';
+                assigneeSelect.value = '';
             }
         });
+
+        // Load users for display
+        function loadUsers() {
+            onValue(usersRef, (snapshot) => {
+                userList.innerHTML = '';
+                snapshot.forEach((childSnapshot) => {
+                    const userData = childSnapshot.val();
+                    const userSpan = document.createElement('span');
+                    userSpan.classList.add('user-item');
+                    userSpan.textContent = userData.email;
+                    userList.appendChild(userSpan);
+                });
+            });
+        }
+
+        // Load assignees for dropdown
+        function loadAssignees() {
+            onValue(usersRef, (snapshot) => {
+                assigneeSelect.innerHTML = '<option value="">Select Assignee</option>';
+                snapshot.forEach((childSnapshot) => {
+                    const userData = childSnapshot.val();
+                    const option = document.createElement('option');
+                    option.value = childSnapshot.key; // UID
+                    option.textContent = userData.email;
+                    assigneeSelect.appendChild(option);
+                });
+            });
+        }
 
         // Load and render tasks
         function loadTasks() {
@@ -129,24 +349,43 @@
                     const li = document.createElement('li');
                     li.textContent = task.text;
                     if (task.status === 'completed') li.classList.add('completed');
-                    const select = document.createElement('select');
-                    select.classList.add('status-select');
-                    ['pending', 'in-progress', 'completed'].forEach((status) => {
-                        const option = document.createElement('option');
-                        option.value = status;
-                        option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-                        if (status === task.status) option.selected = true;
-                        select.appendChild(option);
+
+                    // Assignee info
+                    let assigneeInfo = '';
+                    if (task.assigneeUid) {
+                        // Fetch assignee email (simple sync fetch for display)
+                        const assigneeRef = ref(db, `users/${task.assigneeUid}`);
+                        onValue(assigneeRef, (userSnap) => {
+                            if (userSnap.exists()) {
+                                const userData = userSnap.val();
+                                assigneeInfo = ` (Assigned to: ${userData.email})`;
+                                li.querySelector('.assignee-span')?.remove();
+                                const span = document.createElement('span');
+                                span.classList.add('assignee-span');
+                                span.innerHTML = assigneeInfo;
+                                span.style.color = '#e30613';
+                                li.insertBefore(span, li.firstChild);
+                            }
+                        }, { onlyOnce: true });
+                    }
+
+                    const completeBtn = document.createElement('button');
+                    completeBtn.textContent = task.status === 'completed' ? 'Undo' : 'Complete';
+                    completeBtn.classList.add('complete-btn');
+                    if (task.status === 'completed') completeBtn.classList.add('completed');
+                    completeBtn.addEventListener('click', () => {
+                        const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+                        update(ref(db, 'tasks/' + taskKey), { status: newStatus });
                     });
-                    select.addEventListener('change', () => {
-                        update(ref(db, 'tasks/' + taskKey), { status: select.value });
-                    });
+
                     const deleteBtn = document.createElement('button');
                     deleteBtn.textContent = 'Delete';
+                    deleteBtn.classList.add('delete-btn');
                     deleteBtn.addEventListener('click', () => {
                         remove(ref(db, 'tasks/' + taskKey));
                     });
-                    li.appendChild(select);
+
+                    li.appendChild(completeBtn);
                     li.appendChild(deleteBtn);
                     tasksList.appendChild(li);
                 });
