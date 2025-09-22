@@ -109,6 +109,11 @@
             padding: 5px;
             border-bottom: 1px solid #eee;
         }
+        #welcome-user {
+            text-align: center;
+            color: #757575;
+            font-style: italic;
+        }
         @media (max-width: 600px) {
             input[type="text"], #task-input, select {
                 width: 100%;
@@ -138,11 +143,12 @@
     <div id="auth-section">
         <input type="text" id="user-name" placeholder="Enter your name">
         <button id="start-btn">Start</button>
-        <button id="logout-btn" style="display: none;">Logout</button>
         <p id="auth-message"></p>
     </div>
     
     <div id="task-section" style="display: none;">
+        <p id="welcome-user"></p>
+        <button id="logout-btn">Logout</button>
         <form id="task-form">
             <input type="text" id="task-input" placeholder="Add a new objective..." required>
             <select id="assign-select">
@@ -161,7 +167,7 @@
     <script type="module">
         // Your Firebase configuration - replace with your own
         const firebaseConfig = {
-            apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
+             apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
   authDomain: "daily-objectives-8922e.firebaseapp.com",
   databaseURL: "https://daily-objectives-8922e-default-rtdb.firebaseio.com",
   projectId: "daily-objectives-8922e",
@@ -194,8 +200,10 @@
         const taskSection = document.getElementById('task-section');
         const authSection = document.getElementById('auth-section');
         const usersSection = document.getElementById('users-section');
+        const welcomeUser = document.getElementById('welcome-user');
 
         let users = []; // Store users locally
+        let currentUserName = '';
 
         // Start anonymous session
         startBtn.addEventListener('click', async () => {
@@ -206,11 +214,19 @@
                     return;
                 }
                 const result = await signInAnonymously(auth);
-                set(ref(database, 'users/' + result.user.uid), {
+                await set(ref(database, 'users/' + result.user.uid), {
                     name: name,
                     uid: result.user.uid
                 });
-                authMessage.textContent = 'Started session as ' + name + '!';
+                currentUserName = name;
+                authSection.style.display = 'none';
+                taskSection.style.display = 'block';
+                usersSection.style.display = 'block';
+                logoutBtn.style.display = 'inline-block';
+                welcomeUser.textContent = `Welcome, ${name}!`;
+                loadUsers();
+                loadTasks();
+                authMessage.textContent = '';
             } catch (error) {
                 authMessage.textContent = error.message;
             }
@@ -220,6 +236,14 @@
         logoutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
+                authSection.style.display = 'block';
+                taskSection.style.display = 'none';
+                usersSection.style.display = 'none';
+                logoutBtn.style.display = 'none';
+                welcomeUser.textContent = '';
+                tasksList.innerHTML = '';
+                usersList.innerHTML = '';
+                userName.value = '';
                 authMessage.textContent = 'Logged out.';
             } catch (error) {
                 authMessage.textContent = error.message;
@@ -257,7 +281,7 @@
                 const taskData = {
                     text: taskText,
                     status: 'pending',
-                    createdBy: users.find(u => u.uid === auth.currentUser.uid)?.name || 'Unknown',
+                    createdBy: currentUserName,
                     userId: auth.currentUser.uid
                 };
                 if (assignedUid) {
@@ -295,8 +319,7 @@
                         btn.addEventListener('click', () => {
                             const updates = { status: status, userId: auth.currentUser.uid };
                             if (status === 'completed') {
-                                const user = users.find(u => u.uid === auth.currentUser.uid);
-                                updates.lastCompletedBy = user ? user.name : 'Unknown';
+                                updates.lastCompletedBy = currentUserName;
                             }
                             update(ref(database, 'tasks/' + taskKey), updates);
                         });
@@ -316,14 +339,16 @@
             });
         }
 
-        // Authentication state listener
+        // Authentication state listener (for initial state or re-auth)
         onAuthStateChanged(auth, (user) => {
-            if (user) {
+            if (user && user.isAnonymous) {
                 authSection.style.display = 'none';
                 taskSection.style.display = 'block';
                 usersSection.style.display = 'block';
                 logoutBtn.style.display = 'inline-block';
-                userName.value = users.find(u => u.uid === user.uid)?.name || '';
+                const userData = users.find(u => u.uid === user.uid);
+                currentUserName = userData ? userData.name : '';
+                welcomeUser.textContent = `Welcome, ${currentUserName}!`;
                 loadUsers();
                 loadTasks();
             } else {
@@ -331,8 +356,11 @@
                 taskSection.style.display = 'none';
                 usersSection.style.display = 'none';
                 logoutBtn.style.display = 'none';
+                welcomeUser.textContent = '';
                 tasksList.innerHTML = '';
                 usersList.innerHTML = '';
+                userName.value = '';
+                authMessage.textContent = '';
             }
         });
     </script>
