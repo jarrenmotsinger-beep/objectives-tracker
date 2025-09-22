@@ -148,7 +148,6 @@
     
     <div id="task-section" style="display: none;">
         <p id="welcome-user"></p>
-        <button id="logout-btn">Logout</button>
         <form id="task-form">
             <input type="text" id="task-input" placeholder="Add a new objective..." required>
             <select id="assign-select">
@@ -179,7 +178,7 @@
 
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
-        import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
         import { getDatabase, ref, push, onValue, update, set } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
 
         // Initialize Firebase
@@ -194,7 +193,6 @@
         const tasksList = document.getElementById('tasks');
         const usersList = document.getElementById('users-list');
         const startBtn = document.getElementById('start-btn');
-        const logoutBtn = document.getElementById('logout-btn');
         const userName = document.getElementById('user-name');
         const authMessage = document.getElementById('auth-message');
         const taskSection = document.getElementById('task-section');
@@ -247,29 +245,10 @@
                 authSection.style.display = 'none';
                 taskSection.style.display = 'block';
                 usersSection.style.display = 'block';
-                logoutBtn.style.display = 'inline-block';
                 welcomeUser.textContent = `Welcome, ${name}!`;
                 loadUsers();
                 loadTasks();
                 authMessage.textContent = '';
-            } catch (error) {
-                authMessage.textContent = error.message;
-            }
-        });
-
-        // Logout
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                authSection.style.display = 'block';
-                taskSection.style.display = 'none';
-                usersSection.style.display = 'none';
-                logoutBtn.style.display = 'none';
-                welcomeUser.textContent = '';
-                tasksList.innerHTML = '';
-                usersList.innerHTML = '';
-                userName.value = '';
-                authMessage.textContent = 'Logged out.';
             } catch (error) {
                 authMessage.textContent = error.message;
             }
@@ -370,7 +349,6 @@
                 authSection.style.display = 'none';
                 taskSection.style.display = 'block';
                 usersSection.style.display = 'block';
-                logoutBtn.style.display = 'inline-block';
                 const userData = users.find(u => u.uid === user.uid);
                 currentUserName = userData ? userData.name : '';
                 currentUserUid = user.uid;
@@ -383,7 +361,6 @@
                 authSection.style.display = 'block';
                 taskSection.style.display = 'none';
                 usersSection.style.display = 'none';
-                logoutBtn.style.display = 'none';
                 welcomeUser.textContent = '';
                 tasksList.innerHTML = '';
                 usersList.innerHTML = '';
