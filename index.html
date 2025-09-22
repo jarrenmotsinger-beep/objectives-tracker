@@ -35,7 +35,7 @@
         <ul id="tasks"></ul>
     </div>
     <script type="module">
-        // Your Firebase configuration - replace with your own from Firebase console
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
             authDomain: "daily-objectives-8922e.firebaseapp.com",
@@ -55,10 +55,10 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const database = getDatabase(app);
+        const db = getDatabase(app); // Renamed to avoid conflict
 
-        // References
-        const tasksRef = ref(database, 'tasks');
+        // Database reference
+        const tasksRef = ref(db, 'tasks');
 
         // DOM Elements
         const taskForm = document.getElementById('task-form');
@@ -139,12 +139,12 @@
                         select.appendChild(option);
                     });
                     select.addEventListener('change', () => {
-                        update(ref(database, 'tasks/' + taskKey), { status: select.value });
+                        update(ref(db, 'tasks/' + taskKey), { status: select.value });
                     });
                     const deleteBtn = document.createElement('button');
                     deleteBtn.textContent = 'Delete';
                     deleteBtn.addEventListener('click', () => {
-                        remove(ref(database, 'tasks/' + taskKey));
+                        remove(ref(db, 'tasks/' + taskKey));
                     });
                     li.appendChild(select);
                     li.appendChild(deleteBtn);
