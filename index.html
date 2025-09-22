@@ -32,7 +32,7 @@
             flex-direction: column;
             gap: 10px;
         }
-        #task-input, #address-input, #assignee-select {
+        #task-input, #customer-name-input, #contact-input, #delivery-address-input, #placement-instructions-input, #assignee-select {
             padding: 12px;
             border: 2px solid #ddd;
             border-radius: 8px;
@@ -71,12 +71,6 @@
         #tasks li:hover {
             transform: translateY(-2px);
         }
-        .task-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
         .task-details {
             display: flex;
             flex-direction: column;
@@ -85,7 +79,7 @@
         .task-actions {
             display: flex;
             gap: 10px;
-            margin-top: 10px; /* Added margin for better spacing */
+            margin-top: 10px;
         }
         .complete-btn, .delete-btn {
             padding: 8px 16px;
@@ -124,6 +118,60 @@
         .map-link:hover {
             text-decoration: underline;
         }
+        #auth-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #user-name, #user-email, #user-password {
+            padding: 12px;
+            margin: 5px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #login-btn, #signup-btn {
+            background-color: #e30613;
+            color: white;
+            margin: 5px;
+        }
+        #login-btn:hover, #signup-btn:hover {
+            background-color: #b30410;
+        }
+        #logout-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        #logout-btn:hover {
+            background-color: #5a6268;
+        }
+        #auth-message {
+            color: #dc3545;
+            margin-top: 10px;
+        }
+        .user-list {
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .user-item {
+            display: inline-block;
+            background-color: #e30613;
+            color: white;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -144,8 +192,18 @@
             <div id="user-list"></div>
         </div>
         <form id="task-form">
-            <input type="text" id="task-input" placeholder="Enter objective/delivery details..." required>
-            <input type="text" id="address-input" placeholder="Enter street address" required>
+            <input type="text" id="customer-name-input" placeholder="Customer Name" required>
+            <input type="tel" id="contact-input" placeholder="Contact Number (e.g., 555-555-5555)">
+            <input type="text" id="delivery-address-input" placeholder="Delivery Address" required>
+            <textarea id="placement-instructions-input" placeholder="Placement Instructions"></textarea>
+            
+            <div>
+                <input type="radio" id="type-delivery" name="task-type" value="Delivery" checked>
+                <label for="type-delivery">Delivery</label>
+                <input type="radio" id="type-rts" name="task-type" value="RTS">
+                <label for="type-rts">Return (RTS)</label>
+            </div>
+            
             <select id="assignee-select">
                 <option value="">Select Assignee</option>
             </select>
@@ -182,8 +240,11 @@
 
         // DOM Elements
         const taskForm = document.getElementById('task-form');
-        const taskInput = document.getElementById('task-input');
-        const addressInput = document.getElementById('address-input');
+        const customerNameInput = document.getElementById('customer-name-input');
+        const contactInput = document.getElementById('contact-input');
+        const deliveryAddressInput = document.getElementById('delivery-address-input');
+        const placementInstructionsInput = document.getElementById('placement-instructions-input');
+        const taskTypeInputs = document.querySelectorAll('input[name="task-type"]');
         const assigneeSelect = document.getElementById('assignee-select');
         const tasksList = document.getElementById('tasks');
         const loginBtn = document.getElementById('login-btn');
@@ -253,24 +314,34 @@
             }
         });
 
-        // Add task with address
+        // Add task with new data fields
         taskForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const taskText = taskInput.value.trim();
-            const addressText = addressInput.value.trim();
+            const customerName = customerNameInput.value.trim();
+            const contact = contactInput.value.trim();
+            const deliveryAddress = deliveryAddressInput.value.trim();
+            const placementInstructions = placementInstructionsInput.value.trim();
+            const taskType = document.querySelector('input[name="task-type"]:checked').value;
             const assigneeUid = assigneeSelect.value;
-            if (taskText && addressText) {
+            
+            if (customerName && deliveryAddress && assigneeUid) {
                 push(tasksRef, {
-                    text: taskText,
-                    address: addressText,
+                    customerName: customerName,
+                    contact: contact,
+                    address: deliveryAddress,
+                    placementInstructions: placementInstructions,
+                    type: taskType,
                     status: 'pending',
-                    assigneeUid: assigneeUid || null,
+                    assigneeUid: assigneeUid,
                     assignedBy: auth.currentUser.uid,
                     timestamp: Date.now()
                 });
-                taskInput.value = '';
-                addressInput.value = '';
+                customerNameInput.value = '';
+                contactInput.value = '';
+                deliveryAddressInput.value = '';
+                placementInstructionsInput.value = '';
                 assigneeSelect.value = '';
+                taskTypeInputs[0].checked = true; // Reset to 'Delivery'
             }
         });
 
@@ -314,24 +385,45 @@
                     const taskDetails = document.createElement('div');
                     taskDetails.classList.add('task-details');
 
-                    const objectiveSpan = document.createElement('span');
-                    objectiveSpan.textContent = task.text;
-                    objectiveSpan.style.fontWeight = 'bold';
-                    objectiveSpan.style.color = '#333';
+                    // Display task type (Delivery or RTS)
+                    const typeSpan = document.createElement('span');
+                    typeSpan.textContent = task.type;
+                    typeSpan.style.fontWeight = 'bold';
+                    typeSpan.style.color = task.type === 'Delivery' ? '#28a745' : '#dc3545';
+                    taskDetails.appendChild(typeSpan);
 
+                    // Display Customer Name
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = `Customer: ${task.customerName}`;
+                    taskDetails.appendChild(nameSpan);
+
+                    // Display Contact Number
+                    const contactSpan = document.createElement('span');
+                    contactSpan.textContent = `Contact: ${task.contact}`;
+                    taskDetails.appendChild(contactSpan);
+
+                    // Display Address
                     const addressSpan = document.createElement('span');
+                    addressSpan.textContent = `Address: ${task.address}`;
                     addressSpan.classList.add('address-info');
-                    addressSpan.textContent = task.address;
+                    taskDetails.appendChild(addressSpan);
 
+                    // Create Google Maps link
                     const mapLink = document.createElement('a');
                     mapLink.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(task.address)}`;
                     mapLink.target = '_blank';
                     mapLink.classList.add('map-link');
                     mapLink.textContent = 'Get Directions';
+                    taskDetails.appendChild(mapLink);
+
+                    // Display Placement Instructions
+                    const instructionsSpan = document.createElement('span');
+                    instructionsSpan.textContent = `Instructions: ${task.placementInstructions}`;
+                    instructionsSpan.style.fontStyle = 'italic';
+                    taskDetails.appendChild(instructionsSpan);
 
                     const assigneeSpan = document.createElement('span');
                     assigneeSpan.classList.add('assignee-info');
-
                     if (task.assigneeUid) {
                         const assigneeRef = ref(db, `users/${task.assigneeUid}`);
                         onValue(assigneeRef, (userSnap) => {
@@ -341,29 +433,22 @@
                             }
                         }, { onlyOnce: true });
                     }
-
-                    taskDetails.appendChild(objectiveSpan);
-                    taskDetails.appendChild(addressSpan);
-                    taskDetails.appendChild(mapLink);
                     taskDetails.appendChild(assigneeSpan);
 
                     const taskActions = document.createElement('div');
                     taskActions.classList.add('task-actions');
-
                     const completeBtn = document.createElement('button');
                     completeBtn.textContent = 'Complete';
                     completeBtn.classList.add('complete-btn');
                     completeBtn.addEventListener('click', () => {
                         remove(ref(db, 'tasks/' + taskKey));
                     });
-
                     const deleteBtn = document.createElement('button');
                     deleteBtn.textContent = 'Delete';
                     deleteBtn.classList.add('delete-btn');
                     deleteBtn.addEventListener('click', () => {
                         remove(ref(db, 'tasks/' + taskKey));
                     });
-
                     taskActions.appendChild(completeBtn);
                     taskActions.appendChild(deleteBtn);
 
