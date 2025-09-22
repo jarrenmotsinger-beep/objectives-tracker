@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Objectives Tracker</title>
+    <title>Daily Objectives Tracker - Griffin Waste Services</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
             max-width: 900px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: #F5F5F5; /* Light gray from logo shadows */
             color: #333;
         }
         h1 {
             text-align: center;
-            color: #2e7d32;
+            color: #D32F2F; /* Bold red from GRIFFIN text */
             font-size: 2.5em;
             margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 2px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* Subtle skyline depth */
         }
         #auth-section, #task-section {
             background-color: #fff;
@@ -27,27 +28,34 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+            border-left: 4px solid #D32F2F; /* Red accent bar */
         }
-        input[type="email"], input[type="password"], #task-input {
-            width: 70%;
+        input[type="email"], input[type="password"], #task-input, select {
+            width: calc(70% - 10px);
             padding: 10px;
             margin-right: 10px;
-            border: 1px solid #ccc;
+            margin-bottom: 10px;
+            border: 1px solid #757575; /* Medium gray borders */
             border-radius: 4px;
             font-size: 1em;
+            box-sizing: border-box;
         }
         button {
             padding: 10px 20px;
             border: none;
             border-radius: 4px;
-            background-color: #2e7d32;
+            background-color: #D32F2F; /* Red buttons */
             color: #fff;
             cursor: pointer;
             font-size: 1em;
             transition: background-color 0.3s;
         }
         button:hover {
-            background-color: #1b5e20;
+            background-color: #B71C1C; /* Darker red hover */
+        }
+        #add-task {
+            width: auto;
+            margin-left: 0;
         }
         #tasks {
             list-style: none;
@@ -56,43 +64,53 @@
         #tasks li {
             padding: 15px;
             margin-bottom: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid #757575; /* Gray borders */
             border-radius: 4px;
             background-color: #fff;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start; /* Align to top for longer text */
             transition: transform 0.2s;
+            flex-wrap: wrap;
         }
         #tasks li:hover {
-            transform: scale(1.02);
+            transform: scale(1.01);
+            box-shadow: 0 2px 5px rgba(211, 47, 47, 0.1); /* Red-tinted shadow */
         }
         #tasks li.completed {
             text-decoration: line-through;
-            background-color: #e8f5e9;
+            background-color: #E8F5E9; /* Light green for completion, optional */
             color: #666;
         }
-        .status-select {
+        .status-select, #assign-select {
             padding: 8px;
             border-radius: 4px;
-            border: 1px solid #ccc;
+            border: 1px solid #757575; /* Gray */
             background-color: #fff;
+            margin-right: 10px;
+        }
+        .task-info {
+            flex-grow: 1;
+            margin-right: 10px;
+            font-size: 0.9em;
+            color: #757575; /* Gray for meta info */
         }
         #auth-message {
-            color: #d32f2f;
+            color: #D32F2F; /* Red for errors */
             margin-top: 10px;
         }
         @media (max-width: 600px) {
-            input[type="email"], input[type="password"], #task-input {
+            input[type="email"], input[type="password"], #task-input, select {
                 width: 100%;
-                margin-bottom: 10px;
+                margin-right: 0;
             }
             button {
                 width: 100%;
+                margin-top: 10px;
             }
             #tasks li {
                 flex-direction: column;
-                text-align: center;
+                text-align: left;
             }
             .status-select, button {
                 margin-top: 10px;
@@ -116,6 +134,9 @@
     <div id="task-section" style="display: none;">
         <form id="task-form">
             <input type="text" id="task-input" placeholder="Add a new objective..." required>
+            <select id="assign-select">
+                <option value="">Unassigned</option>
+            </select>
             <button type="submit" id="add-task">Add</button>
         </form>
         <ul id="tasks"></ul>
@@ -137,7 +158,7 @@
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
-        import { getDatabase, ref, push, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
+        import { getDatabase, ref, push, onValue, update, remove, set } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -147,6 +168,7 @@
         // DOM Elements
         const taskForm = document.getElementById('task-form');
         const taskInput = document.getElementById('task-input');
+        const assignSelect = document.getElementById('assign-select');
         const tasksList = document.getElementById('tasks');
         const loginBtn = document.getElementById('login-btn');
         const signupBtn = document.getElementById('signup-btn');
@@ -157,12 +179,39 @@
         const taskSection = document.getElementById('task-section');
         const authSection = document.getElementById('auth-section');
 
+        let users = {}; // Cache for users
+
+        // Load users
+        function loadUsers() {
+            const usersRef = ref(database, 'users');
+            onValue(usersRef, (snapshot) => {
+                users = {};
+                snapshot.forEach((childSnapshot) => {
+                    const userData = childSnapshot.val();
+                    users[childSnapshot.key] = userData.email;
+                });
+                updateAssignDropdown();
+            });
+        }
+
+        // Update assignment dropdown
+        function updateAssignDropdown() {
+            assignSelect.innerHTML = '<option value="">Unassigned</option>';
+            Object.entries(users).forEach(([uid, email]) => {
+                const option = document.createElement('option');
+                option.value = uid;
+                option.textContent = email;
+                assignSelect.appendChild(option);
+            });
+        }
+
         // Authentication state listener
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 authSection.style.display = 'none';
                 taskSection.style.display = 'block';
                 logoutBtn.style.display = 'inline-block';
+                loadUsers(); // Load users when logged in
                 loadTasks();
             } else {
                 authSection.style.display = 'block';
@@ -172,10 +221,14 @@
             }
         });
 
-        // Sign up
+        // Sign up - also add to users node
         signupBtn.addEventListener('click', async () => {
             try {
-                await createUserWithEmailAndPassword(auth, userEmail.value, userPassword.value);
+                const userCredential = await createUserWithEmailAndPassword(auth, userEmail.value, userPassword.value);
+                // Add user to database
+                set(ref(database, 'users/' + userCredential.user.uid), {
+                    email: userEmail.value
+                });
                 authMessage.textContent = 'Signed up successfully!';
             } catch (error) {
                 authMessage.textContent = error.message;
@@ -206,14 +259,19 @@
         taskForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const taskText = taskInput.value.trim();
+            const assignedUid = assignSelect.value;
+            const assignedEmail = assignedUid ? users[assignedUid] : '';
             if (taskText && auth.currentUser) {
                 push(ref(database, 'tasks'), {
                     text: taskText,
                     status: 'pending',
+                    assignedTo: assignedUid,
+                    assignedToEmail: assignedEmail,
                     userId: auth.currentUser.uid,
                     userEmail: auth.currentUser.email
                 });
                 taskInput.value = '';
+                assignSelect.value = '';
             }
         });
 
@@ -226,7 +284,13 @@
                     const task = childSnapshot.val();
                     const taskKey = childSnapshot.key;
                     const li = document.createElement('li');
-                    li.textContent = `${task.text} (Last updated by: ${task.userEmail})`;
+                    li.innerHTML = `
+                        <div>
+                            <strong>${task.text}</strong>
+                            ${task.assignedToEmail ? `<p class="task-info">Assigned to: ${task.assignedToEmail}</p>` : '<p class="task-info">Unassigned</p>'}
+                            <p class="task-info">Last updated by: ${task.userEmail}</p>
+                        </div>
+                    `;
                     if (task.status === 'completed') li.classList.add('completed');
 
                     const select = document.createElement('select');
