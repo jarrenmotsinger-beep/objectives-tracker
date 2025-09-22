@@ -167,7 +167,7 @@
     <script type="module">
         // Your Firebase configuration - replace with your own
         const firebaseConfig = {
-             apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
+            apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
   authDomain: "daily-objectives-8922e.firebaseapp.com",
   databaseURL: "https://daily-objectives-8922e-default-rtdb.firebaseio.com",
   projectId: "daily-objectives-8922e",
@@ -180,7 +180,7 @@
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
         import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
-        import { getDatabase, ref, push, onValue, update, remove, set } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
+        import { getDatabase, ref, push, onValue, update, set } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -204,8 +204,9 @@
 
         let users = []; // Store users locally
         let currentUserName = '';
+        let currentUserUid = '';
 
-        // Start anonymous session
+        // Start anonymous session with existing user check
         startBtn.addEventListener('click', async () => {
             try {
                 const name = userName.value.trim();
@@ -213,11 +214,35 @@
                     authMessage.textContent = 'Please enter a name.';
                     return;
                 }
+
+                // Sign in anonymously
                 const result = await signInAnonymously(auth);
-                await set(ref(database, 'users/' + result.user.uid), {
-                    name: name,
-                    uid: result.user.uid
-                });
+                const newUid = result.user.uid;
+
+                // Check if the name already exists
+                const usersRef = ref(database, 'users');
+                const snapshot = await get(usersRef);
+                let existingUser = null;
+                if (snapshot.exists()) {
+                    existingUser = Object.values(snapshot.val()).find(user => user.name.toLowerCase() === name.toLowerCase());
+                }
+
+                if (existingUser) {
+                    // Update existing user's UID if it differs
+                    if (existingUser.uid !== newUid) {
+                        const userKey = Object.keys(snapshot.val()).find(key => snapshot.val()[key].name.toLowerCase() === name.toLowerCase());
+                        await update(ref(database, `users/${userKey}`), { uid: newUid });
+                    }
+                    currentUserUid = newUid;
+                } else {
+                    // New user, add to database
+                    await set(ref(database, `users/${newUid}`), {
+                        name: name,
+                        uid: newUid
+                    });
+                    currentUserUid = newUid;
+                }
+
                 currentUserName = name;
                 authSection.style.display = 'none';
                 taskSection.style.display = 'block';
@@ -282,7 +307,7 @@
                     text: taskText,
                     status: 'pending',
                     createdBy: currentUserName,
-                    userId: auth.currentUser.uid
+                    userId: currentUserUid
                 };
                 if (assignedUid) {
                     const assignedUser = users.find(u => u.uid === assignedUid);
@@ -317,7 +342,7 @@
                         btn.textContent = status.charAt(0).toUpperCase() + status.slice(1);
                         if (task.status === status) btn.classList.add('active');
                         btn.addEventListener('click', () => {
-                            const updates = { status: status, userId: auth.currentUser.uid };
+                            const updates = { status: status, userId: currentUserUid };
                             if (status === 'completed') {
                                 updates.lastCompletedBy = currentUserName;
                             }
@@ -348,9 +373,12 @@
                 logoutBtn.style.display = 'inline-block';
                 const userData = users.find(u => u.uid === user.uid);
                 currentUserName = userData ? userData.name : '';
-                welcomeUser.textContent = `Welcome, ${currentUserName}!`;
-                loadUsers();
-                loadTasks();
+                currentUserUid = user.uid;
+                if (currentUserName) {
+                    welcomeUser.textContent = `Welcome, ${currentUserName}!`;
+                    loadUsers();
+                    loadTasks();
+                }
             } else {
                 authSection.style.display = 'block';
                 taskSection.style.display = 'none';
