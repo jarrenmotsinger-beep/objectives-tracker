@@ -5,19 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Objectives Tracker</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1 { text-align: center; }
-        #task-form { margin-bottom: 20px; }
-        #task-input { width: 70%; padding: 8px; }
-        #add-task { padding: 8px 16px; }
-        #tasks { list-style: none; padding: 0; }
-        #tasks li { padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
-        #tasks li.completed { text-decoration: line-through; background-color: #f0f0f0; }
-        .status-select { padding: 5px; }
-        #auth-section { margin-bottom: 20px; }
-        #user-email, #user-password { padding: 8px; margin-right: 10px; }
-        button { cursor: pointer; }
-        #auth-message { color: red; }
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2e7d32;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #auth-section, #task-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        input[type="email"], input[type="password"], #task-input {
+            width: 70%;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2e7d32;
+            color: #fff;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1b5e20;
+        }
+        #tasks {
+            list-style: none;
+            padding: 0;
+        }
+        #tasks li {
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        #tasks li:hover {
+            transform: scale(1.02);
+        }
+        #tasks li.completed {
+            text-decoration: line-through;
+            background-color: #e8f5e9;
+            color: #666;
+        }
+        .status-select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+        }
+        #auth-message {
+            color: #d32f2f;
+            margin-top: 10px;
+        }
+        @media (max-width: 600px) {
+            input[type="email"], input[type="password"], #task-input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            button {
+                width: 100%;
+            }
+            #tasks li {
+                flex-direction: column;
+                text-align: center;
+            }
+            .status-select, button {
+                margin-top: 10px;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -125,10 +206,12 @@
         taskForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const taskText = taskInput.value.trim();
-            if (taskText) {
+            if (taskText && auth.currentUser) {
                 push(ref(database, 'tasks'), {
                     text: taskText,
-                    status: 'pending'
+                    status: 'pending',
+                    userId: auth.currentUser.uid,
+                    userEmail: auth.currentUser.email
                 });
                 taskInput.value = '';
             }
@@ -143,7 +226,7 @@
                     const task = childSnapshot.val();
                     const taskKey = childSnapshot.key;
                     const li = document.createElement('li');
-                    li.textContent = task.text;
+                    li.textContent = `${task.text} (Last updated by: ${task.userEmail})`;
                     if (task.status === 'completed') li.classList.add('completed');
 
                     const select = document.createElement('select');
@@ -157,7 +240,11 @@
                     });
 
                     select.addEventListener('change', () => {
-                        update(ref(database, 'tasks/' + taskKey), { status: select.value });
+                        update(ref(database, 'tasks/' + taskKey), {
+                            status: select.value,
+                            userId: auth.currentUser.uid,
+                            userEmail: auth.currentUser.email
+                        });
                     });
 
                     const deleteBtn = document.createElement('button');
