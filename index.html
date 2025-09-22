@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Objectives Tracker</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; }
+        #task-form { margin-bottom: 20px; }
+        #task-input { width: 70%; padding: 8px; }
+        #add-task { padding: 8px 16px; }
+        #tasks { list-style: none; padding: 0; }
+        #tasks li { padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        #tasks li.completed { text-decoration: line-through; background-color: #f0f0f0; }
+        .status-select { padding: 5px; }
+        #auth-section { margin-bottom: 20px; }
+        #user-email, #user-password { padding: 8px; margin-right: 10px; }
+        button { cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Daily Objectives Tracker</h1>
+    
+    <div id="auth-section">
+        <input type="email" id="user-email" placeholder="Email">
+        <input type="password" id="user-password" placeholder="Password">
+        <button id="login-btn">Login</button>
+        <button id="signup-btn">Sign Up</button>
+        <button id="logout-btn" style="display: none;">Logout</button>
+        <p id="auth-message"></p>
+    </div>
+    
+    <div id="task-section" style="display: none;">
+        <form id="task-form">
+            <input type="text" id="task-input" placeholder="Add a new objective..." required>
+            <button id="add-task">Add</button>
+        </form>
+        <ul id="tasks"></ul>
+    </div>
+
+    <script>
+        // Your Firebase configuration - replace with your own from Firebase console
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
+  authDomain: "daily-objectives-8922e.firebaseapp.com",
+  databaseURL: "https://daily-objectives-8922e-default-rtdb.firebaseio.com",
+  projectId: "daily-objectives-8922e",
+  storageBucket: "daily-objectives-8922e.firebasestorage.app",
+  messagingSenderId: "450105668325",
+  appId: "1:450105668325:web:e64427c9316403195fda0c",
+  measurementId: "G-9EKLEJJN73"
+};
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // References
+        const tasksRef = database.ref('tasks');
+        const taskForm = document.getElementById('task-form');
+        const taskInput = document.getElementById('task-input');
+        const tasksList = document.getElementById('tasks');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userEmail = document.getElementById('user-email');
+        const userPassword = document.getElementById('user-password');
+        const authMessage = document.getElementById('auth-message');
+        const taskSection = document.getElementById('task-section');
+        const authSection = document.getElementById('auth-section');
+
+        // Authentication state listener
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                authSection.style.display = 'none';
+                taskSection.style.display = 'block';
+                logoutBtn.style.display = 'inline';
+                loadTasks();
+            } else {
+                authSection.style.display = 'block';
+                taskSection.style.display = 'none';
+                logoutBtn.style.display = 'none';
+                tasksList.innerHTML = '';
+            }
+        });
+
+        // Signup
+        signupBtn.addEventListener('click', () => {
+            auth.createUserWithEmailAndPassword(userEmail.value, userPassword.value)
+                .then(() => authMessage.textContent = 'Signed up successfully!')
+                .catch(error => authMessage.textContent = error.message);
+        });
+
+        // Login
+        loginBtn.addEventListener('click', () => {
+            auth.signInWithEmailAndPassword(userEmail.value, userPassword.value)
+                .then(() => authMessage.textContent = 'Logged in successfully!')
+                .catch(error => authMessage.textContent = error.message);
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => authMessage.textContent = 'Logged out.');
+        });
+
+        // Add task
+        taskForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const taskText = taskInput.value.trim();
+            if (taskText) {
+                tasksRef.push({
+                    text: taskText,
+                    status: 'pending' // Initial status: pending, completed, in-progress, etc.
+                });
+                taskInput.value = '';
+            }
+        });
+
+        // Load and render tasks
+        function loadTasks() {
+            tasksRef.on('value', snapshot => {
+                tasksList.innerHTML = '';
+                snapshot.forEach(child => {
+                    const task = child.val();
+                    const taskKey = child.key;
+                    const li = document.createElement('li');
+                    li.textContent = task.text;
+                    if (task.status === 'completed') li.classList.add('completed');
+
+                    const select = document.createElement('select');
+                    select.classList.add('status-select');
+                    ['pending', 'in-progress', 'completed'].forEach(status => {
+                        const option = document.createElement('option');
+                        option.value = status;
+                        option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                        if (status === task.status) option.selected = true;
+                        select.appendChild(option);
+                    });
+
+                    select.addEventListener('change', () => {
+                        tasksRef.child(taskKey).update({ status: select.value });
+                    });
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.addEventListener('click', () => {
+                        tasksRef.child(taskKey).remove();
+                    });
+
+                    li.appendChild(select);
+                    li.appendChild(deleteBtn);
+                    tasksList.appendChild(li);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
