@@ -1,8 +1,173 @@
-<script type="module">
-    // Ensure DOM is fully loaded before running script
-    document.addEventListener('DOMContentLoaded', () => {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Objectives Tracker - Griffin Waste Services</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fafafa;
+            color: #212121;
+        }
+        h1 {
+            text-align: center;
+            color: #c62828;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #logo {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 300px;
+            height: auto;
+        }
+        #auth-section, #task-section, #users-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        input[type="text"], #task-input {
+            width: 60%;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #9e9e9e;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        select {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #9e9e9e;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #c62828;
+            color: #fff;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #b71c1c;
+        }
+        #tasks {
+            list-style: none;
+            padding: 0;
+        }
+        #tasks li {
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #9e9e9e;
+            border-radius: 4px;
+            background-color: #fff;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        #tasks li:hover {
+            transform: scale(1.02);
+        }
+        #tasks li.completed {
+            text-decoration: line-through;
+            background-color: #ffebee;
+            color: #666;
+        }
+        .status-btn {
+            padding: 5px 10px;
+            margin: 2px;
+        }
+        .status-btn.active {
+            background-color: #b71c1c;
+            font-weight: bold;
+        }
+        #auth-message {
+            color: #d32f2f;
+            margin-top: 10px;
+        }
+        #users-list {
+            margin-top: 10px;
+        }
+        #users-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        #users-list li {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        #welcome-user {
+            text-align: center;
+            color: #757575;
+            font-style: italic;
+        }
+        @media (max-width: 600px) {
+            input[type="text"], #task-input, select {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            button {
+                width: 100%;
+                margin-top: 10px;
+            }
+            #tasks li {
+                flex-direction: column;
+                text-align: center;
+            }
+            .status-btn {
+                width: 30%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Add your logo here: Upload logo.png to your GitHub repo and uncomment -->
+    <!-- <img id="logo" src="logo.png" alt="Griffin Waste Services Logo"> -->
+
+    <h1>Daily Objectives Tracker</h1>
+
+    <div id="auth-section">
+        <input type="text" id="user-name" placeholder="Enter your name">
+        <button id="start-btn">Start</button>
+        <p id="auth-message"></p>
+    </div>
+
+    <div id="task-section" style="display: none;">
+        <p id="welcome-user"></p>
+        <button id="logout-btn">Logout</button>
+        <form id="task-form">
+            <input type="text" id="task-input" placeholder="Add a new objective..." required>
+            <select id="assign-select">
+                <option value="">Assign to...</option>
+            </select>
+            <button type="submit" id="add-task">Add</button>
+        </form>
+        <ul id="tasks"></ul>
+    </div>
+
+    <div id="users-section" style="display: none;">
+        <h2>Users</h2>
+        <div id="users-list"></div>
+    </div>
+
+    <script type="module">
         // Your Firebase configuration - replace with your own
         const firebaseConfig = {
+             apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
             apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
   authDomain: "daily-objectives-8922e.firebaseapp.com",
   databaseURL: "https://daily-objectives-8922e-default-rtdb.firebaseio.com",
@@ -10,13 +175,14 @@
   storageBucket: "daily-objectives-8922e.firebasestorage.app",
   messagingSenderId: "450105668325",
   appId: "1:450105668325:web:e64427c9316403195fda0c",
-  
+  measurementId: "G-9EKLEJJN73"
         };
 
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
-        import { getDatabase, ref, push, onValue, update, set, get } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
+        import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+        import { getDatabase, ref, push, onValue, update, remove, set } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
+        import { getDatabase, ref, push, onValue, update, set } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -30,6 +196,7 @@
         const tasksList = document.getElementById('tasks');
         const usersList = document.getElementById('users-list');
         const startBtn = document.getElementById('start-btn');
+        const logoutBtn = document.getElementById('logout-btn');
         const userName = document.getElementById('user-name');
         const authMessage = document.getElementById('auth-message');
         const taskSection = document.getElementById('task-section');
@@ -41,6 +208,7 @@
         let currentUserName = '';
         let currentUserUid = '';
 
+        // Start anonymous session
         // Start anonymous session with existing user check
         startBtn.addEventListener('click', async () => {
             try {
@@ -52,6 +220,10 @@
 
                 // Sign in anonymously
                 const result = await signInAnonymously(auth);
+                await set(ref(database, 'users/' + result.user.uid), {
+                    name: name,
+                    uid: result.user.uid
+                });
                 const newUid = result.user.uid;
 
                 // Check if the name already exists
@@ -82,8 +254,9 @@
                 authSection.style.display = 'none';
                 taskSection.style.display = 'block';
                 usersSection.style.display = 'block';
+                logoutBtn.style.display = 'inline-block';
                 welcomeUser.textContent = `Welcome, ${name}!`;
-                await loadUsers(); // Force immediate user load
+                loadUsers();
                 loadTasks();
                 authMessage.textContent = '';
             } catch (error) {
@@ -91,34 +264,33 @@
             }
         });
 
-        // Load users and populate dropdown
-        async function loadUsers() {
-            const usersRef = ref(database, 'users');
-            const snapshot = await get(usersRef); // Initial fetch
-            users = [];
-            usersList.innerHTML = '<ul></ul>';
-            const ul = usersList.querySelector('ul');
-            assignSelect.innerHTML = '<option value="">Assign to...</option>';
-            if (snapshot.exists()) {
-                snapshot.forEach((childSnapshot) => {
-                    const userData = childSnapshot.val();
-                    users.push(userData);
-                    const li = document.createElement('li');
-                    li.textContent = userData.name;
-                    ul.appendChild(li);
-                    const option = document.createElement('option');
-                    option.value = userData.uid;
-                    option.textContent = userData.name;
-                    assignSelect.appendChild(option);
-                });
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                authSection.style.display = 'block';
+                taskSection.style.display = 'none';
+                usersSection.style.display = 'none';
+                logoutBtn.style.display = 'none';
+                welcomeUser.textContent = '';
+                tasksList.innerHTML = '';
+                usersList.innerHTML = '';
+                userName.value = '';
+                authMessage.textContent = 'Logged out.';
+            } catch (error) {
+                authMessage.textContent = error.message;
             }
-            // Keep the real-time listener for updates
-            onValue(usersRef, (snap) => {
+        });
+
+        // Load users and populate dropdown
+        function loadUsers() {
+            const usersRef = ref(database, 'users');
+            onValue(usersRef, (snapshot) => {
                 users = [];
                 usersList.innerHTML = '<ul></ul>';
                 const ul = usersList.querySelector('ul');
                 assignSelect.innerHTML = '<option value="">Assign to...</option>';
-                snap.forEach((childSnapshot) => {
+                snapshot.forEach((childSnapshot) => {
                     const userData = childSnapshot.val();
                     users.push(userData);
                     const li = document.createElement('li');
@@ -142,6 +314,7 @@
                     text: taskText,
                     status: 'pending',
                     createdBy: currentUserName,
+                    userId: auth.currentUser.uid
                     userId: currentUserUid
                 };
                 if (assignedUid) {
@@ -177,6 +350,7 @@
                         btn.textContent = status.charAt(0).toUpperCase() + status.slice(1);
                         if (task.status === status) btn.classList.add('active');
                         btn.addEventListener('click', () => {
+                            const updates = { status: status, userId: auth.currentUser.uid };
                             const updates = { status: status, userId: currentUserUid };
                             if (status === 'completed') {
                                 updates.lastCompletedBy = currentUserName;
@@ -205,8 +379,12 @@
                 authSection.style.display = 'none';
                 taskSection.style.display = 'block';
                 usersSection.style.display = 'block';
+                logoutBtn.style.display = 'inline-block';
                 const userData = users.find(u => u.uid === user.uid);
                 currentUserName = userData ? userData.name : '';
+                welcomeUser.textContent = `Welcome, ${currentUserName}!`;
+                loadUsers();
+                loadTasks();
                 currentUserUid = user.uid;
                 if (currentUserName) {
                     welcomeUser.textContent = `Welcome, ${currentUserName}!`;
@@ -217,6 +395,7 @@
                 authSection.style.display = 'block';
                 taskSection.style.display = 'none';
                 usersSection.style.display = 'none';
+                logoutBtn.style.display = 'none';
                 welcomeUser.textContent = '';
                 tasksList.innerHTML = '';
                 usersList.innerHTML = '';
@@ -224,5 +403,6 @@
                 authMessage.textContent = '';
             }
         });
-    });
-</script>
+    </script>
+</body>
+</html>
