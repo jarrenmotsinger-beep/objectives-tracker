@@ -1,225 +1,394 @@
-<script type="module">
-    // Your Firebase configuration - replace with your own
-    const firebaseConfig = {
-        apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Objectives Tracker - Griffin Waste Services</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fafafa;
+            color: #212121;
+        }
+        h1 {
+            text-align: center;
+            color: #c62828;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #logo {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 300px;
+            height: auto;
+        }
+        #auth-section, #task-section, #users-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        input[type="text"], #task-input {
+            width: 60%;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #9e9e9e;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        select {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #9e9e9e;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #c62828;
+            color: #fff;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #b71c1c;
+        }
+        #tasks {
+            list-style: none;
+            padding: 0;
+        }
+        #tasks li {
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #9e9e9e;
+            border-radius: 4px;
+            background-color: #fff;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        #tasks li:hover {
+            transform: scale(1.02);
+        }
+        #tasks li.completed {
+            text-decoration: line-through;
+            background-color: #ffebee;
+            color: #666;
+        }
+        .status-btn {
+            padding: 5px 10px;
+            margin: 2px;
+        }
+        .status-btn.active {
+            background-color: #b71c1c;
+            font-weight: bold;
+        }
+        #auth-message {
+            color: #d32f2f;
+            margin-top: 10px;
+        }
+        #users-list {
+            margin-top: 10px;
+        }
+        #users-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        #users-list li {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        #welcome-user {
+            text-align: center;
+            color: #757575;
+            font-style: italic;
+        }
+        @media (max-width: 600px) {
+            input[type="text"], #task-input, select {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            button {
+                width: 100%;
+                margin-top: 10px;
+            }
+            #tasks li {
+                flex-direction: column;
+                text-align: center;
+            }
+            .status-btn {
+                width: 30%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Add your logo here: Upload logo.png to your GitHub repo and uncomment -->
+    <!-- <img id="logo" src="logo.png" alt="Griffin Waste Services Logo"> -->
+    
+    <h1>Daily Objectives Tracker</h1>
+    
+    <div id="auth-section">
+        <input type="text" id="user-name" placeholder="Enter your name">
+        <button id="start-btn">Start</button>
+        <p id="auth-message"></p>
+    </div>
+    
+    <div id="task-section" style="display: none;">
+        <p id="welcome-user"></p>
+        <form id="task-form">
+            <input type="text" id="task-input" placeholder="Add a new objective..." required>
+            <select id="assign-select">
+                <option value="">Assign to...</option>
+            </select>
+            <button type="submit" id="add-task">Add</button>
+        </form>
+        <ul id="tasks"></ul>
+    </div>
+    
+    <div id="users-section" style="display: none;">
+        <h2>Users</h2>
+        <div id="users-list"></div>
+    </div>
+
+    <script type="module">
+        // Ensure DOM is fully loaded before running script
+        document.addEventListener('DOMContentLoaded', () => {
+            // Your Firebase configuration - replace with your own
+            const firebaseConfig = {
+                apiKey: "AIzaSyBTFuNqxrFLPE6TIRPXhwryKq3eRSt7PEY",
   authDomain: "daily-objectives-8922e.firebaseapp.com",
   databaseURL: "https://daily-objectives-8922e-default-rtdb.firebaseio.com",
   projectId: "daily-objectives-8922e",
   storageBucket: "daily-objectives-8922e.firebasestorage.app",
   messagingSenderId: "450105668325",
   appId: "1:450105668325:web:e64427c9316403195fda0c",
-  measurementId: "G-9EKLEJJN73"
-    };
-
-    // Import Firebase modules
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
-    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
-    import { getDatabase, ref, push, onValue, update, set, get } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const database = getDatabase(app);
-
-    // DOM Elements
-    const taskForm = document.getElementById('task-form');
-    const taskInput = document.getElementById('task-input');
-    const assignSelect = document.getElementById('assign-select');
-    const tasksList = document.getElementById('tasks');
-    const usersList = document.getElementById('users-list');
-    const startBtn = document.getElementById('start-btn');
-    const userName = document.getElementById('user-name');
-    const authMessage = document.getElementById('auth-message');
-    const taskSection = document.getElementById('task-section');
-    const authSection = document.getElementById('auth-section');
-    const usersSection = document.getElementById('users-section');
-    const welcomeUser = document.getElementById('welcome-user');
-
-    let users = []; // Store users locally
-    let currentUserName = '';
-    let currentUserUid = '';
-
-    // Start anonymous session with existing user check
-    startBtn.addEventListener('click', async () => {
-        try {
-            const name = userName.value.trim();
-            if (!name) {
-                authMessage.textContent = 'Please enter a name.';
-                return;
-            }
-
-            // Sign in anonymously
-            const result = await signInAnonymously(auth);
-            const newUid = result.user.uid;
-
-            // Check if the name already exists
-            const usersRef = ref(database, 'users');
-            const snapshot = await get(usersRef);
-            let existingUser = null;
-            if (snapshot.exists()) {
-                existingUser = Object.values(snapshot.val()).find(user => user.name.toLowerCase() === name.toLowerCase());
-            }
-
-            if (existingUser) {
-                // Update existing user's UID if it differs
-                if (existingUser.uid !== newUid) {
-                    const userKey = Object.keys(snapshot.val()).find(key => snapshot.val()[key].name.toLowerCase() === name.toLowerCase());
-                    await update(ref(database, `users/${userKey}`), { uid: newUid });
-                }
-                currentUserUid = newUid;
-            } else {
-                // New user, add to database
-                await set(ref(database, `users/${newUid}`), {
-                    name: name,
-                    uid: newUid
-                });
-                currentUserUid = newUid;
-            }
-
-            currentUserName = name;
-            authSection.style.display = 'none';
-            taskSection.style.display = 'block';
-            usersSection.style.display = 'block';
-            welcomeUser.textContent = `Welcome, ${name}!`;
-            await loadUsers(); // Force immediate user load
-            loadTasks();
-            authMessage.textContent = '';
-        } catch (error) {
-            authMessage.textContent = error.message;
-        }
-    });
-
-    // Load users and populate dropdown
-    async function loadUsers() {
-        const usersRef = ref(database, 'users');
-        const snapshot = await get(usersRef); // Initial fetch
-        users = [];
-        usersList.innerHTML = '<ul></ul>';
-        const ul = usersList.querySelector('ul');
-        assignSelect.innerHTML = '<option value="">Assign to...</option>';
-        if (snapshot.exists()) {
-            snapshot.forEach((childSnapshot) => {
-                const userData = childSnapshot.val();
-                users.push(userData);
-                const li = document.createElement('li');
-                li.textContent = userData.name;
-                ul.appendChild(li);
-                const option = document.createElement('option');
-                option.value = userData.uid;
-                option.textContent = userData.name;
-                assignSelect.appendChild(option);
-            });
-        }
-        // Keep the real-time listener for updates
-        onValue(usersRef, (snap) => {
-            users = [];
-            usersList.innerHTML = '<ul></ul>';
-            const ul = usersList.querySelector('ul');
-            assignSelect.innerHTML = '<option value="">Assign to...</option>';
-            snap.forEach((childSnapshot) => {
-                const userData = childSnapshot.val();
-                users.push(userData);
-                const li = document.createElement('li');
-                li.textContent = userData.name;
-                ul.appendChild(li);
-                const option = document.createElement('option');
-                option.value = userData.uid;
-                option.textContent = userData.name;
-                assignSelect.appendChild(option);
-            });
-        });
-    }
-
-    // Add task with assignment
-    taskForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const taskText = taskInput.value.trim();
-        const assignedUid = assignSelect.value;
-        if (taskText && auth.currentUser) {
-            const taskData = {
-                text: taskText,
-                status: 'pending',
-                createdBy: currentUserName,
-                userId: currentUserUid
             };
-            if (assignedUid) {
-                const assignedUser = users.find(u => u.uid === assignedUid);
-                taskData.assignedToUid = assignedUid;
-                taskData.assignedToName = assignedUser.name;
-            }
-            push(ref(database, 'tasks'), taskData);
-            taskInput.value = '';
-            assignSelect.value = '';
-        }
-    });
 
-    // Load and render tasks with buttons
-    function loadTasks() {
-        const tasksRef = ref(database, 'tasks');
-        onValue(tasksRef, (snapshot) => {
-            tasksList.innerHTML = '';
-            snapshot.forEach((childSnapshot) => {
-                const task = childSnapshot.val();
-                const taskKey = childSnapshot.key;
-                const li = document.createElement('li');
-                let displayText = `${task.text}`;
-                if (task.assignedToName) displayText += ` (Assigned to: ${task.assignedToName})`;
-                displayText += ` (Created by: ${task.createdBy})`;
-                li.textContent = displayText;
-                if (task.status === 'completed') li.classList.add('completed');
+            // Import Firebase modules
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
+            import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+            import { getDatabase, ref, push, onValue, update, set, get } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
 
-                const statusDiv = document.createElement('div');
-                ['pending', 'in-progress', 'completed'].forEach(status => {
-                    const btn = document.createElement('button');
-                    btn.className = 'status-btn';
-                    btn.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-                    if (task.status === status) btn.classList.add('active');
-                    btn.addEventListener('click', () => {
-                        const updates = { status: status, userId: currentUserUid };
-                        if (status === 'completed') {
-                            updates.lastCompletedBy = currentUserName;
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const database = getDatabase(app);
+
+            // DOM Elements
+            const taskForm = document.getElementById('task-form');
+            const taskInput = document.getElementById('task-input');
+            const assignSelect = document.getElementById('assign-select');
+            const tasksList = document.getElementById('tasks');
+            const usersList = document.getElementById('users-list');
+            const startBtn = document.getElementById('start-btn');
+            const userName = document.getElementById('user-name');
+            const authMessage = document.getElementById('auth-message');
+            const taskSection = document.getElementById('task-section');
+            const authSection = document.getElementById('auth-section');
+            const usersSection = document.getElementById('users-section');
+            const welcomeUser = document.getElementById('welcome-user');
+
+            let users = []; // Store users locally
+            let currentUserName = '';
+            let currentUserUid = '';
+
+            // Start anonymous session with existing user check
+            startBtn.addEventListener('click', async () => {
+                try {
+                    const name = userName.value.trim();
+                    if (!name) {
+                        authMessage.textContent = 'Please enter a name.';
+                        return;
+                    }
+
+                    // Sign in anonymously
+                    const result = await signInAnonymously(auth);
+                    const newUid = result.user.uid;
+
+                    // Check if the name already exists
+                    const usersRef = ref(database, 'users');
+                    const snapshot = await get(usersRef);
+                    let existingUser = null;
+                    if (snapshot.exists()) {
+                        existingUser = Object.values(snapshot.val()).find(user => user.name.toLowerCase() === name.toLowerCase());
+                    }
+
+                    if (existingUser) {
+                        // Update existing user's UID if it differs
+                        if (existingUser.uid !== newUid) {
+                            const userKey = Object.keys(snapshot.val()).find(key => snapshot.val()[key].name.toLowerCase() === name.toLowerCase());
+                            await update(ref(database, `users/${userKey}`), { uid: newUid });
                         }
-                        update(ref(database, 'tasks/' + taskKey), updates);
+                        currentUserUid = newUid;
+                    } else {
+                        // New user, add to database
+                        await set(ref(database, `users/${newUid}`), {
+                            name: name,
+                            uid: newUid
+                        });
+                        currentUserUid = newUid;
+                    }
+
+                    currentUserName = name;
+                    authSection.style.display = 'none';
+                    taskSection.style.display = 'block';
+                    usersSection.style.display = 'block';
+                    welcomeUser.textContent = `Welcome, ${name}!`;
+                    await loadUsers(); // Force immediate user load
+                    loadTasks();
+                    authMessage.textContent = '';
+                } catch (error) {
+                    authMessage.textContent = error.message;
+                }
+            });
+
+            // Load users and populate dropdown
+            async function loadUsers() {
+                const usersRef = ref(database, 'users');
+                const snapshot = await get(usersRef); // Initial fetch
+                users = [];
+                usersList.innerHTML = '<ul></ul>';
+                const ul = usersList.querySelector('ul');
+                assignSelect.innerHTML = '<option value="">Assign to...</option>';
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const userData = childSnapshot.val();
+                        users.push(userData);
+                        const li = document.createElement('li');
+                        li.textContent = userData.name;
+                        ul.appendChild(li);
+                        const option = document.createElement('option');
+                        option.value = userData.uid;
+                        option.textContent = userData.name;
+                        assignSelect.appendChild(option);
                     });
-                    statusDiv.appendChild(btn);
+                }
+                // Keep the real-time listener for updates
+                onValue(usersRef, (snap) => {
+                    users = [];
+                    usersList.innerHTML = '<ul></ul>';
+                    const ul = usersList.querySelector('ul');
+                    assignSelect.innerHTML = '<option value="">Assign to...</option>';
+                    snap.forEach((childSnapshot) => {
+                        const userData = childSnapshot.val();
+                        users.push(userData);
+                        const li = document.createElement('li');
+                        li.textContent = userData.name;
+                        ul.appendChild(li);
+                        const option = document.createElement('option');
+                        option.value = userData.uid;
+                        option.textContent = userData.name;
+                        assignSelect.appendChild(option);
+                    });
                 });
+            }
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.addEventListener('click', () => {
-                    remove(ref(database, 'tasks/' + taskKey));
+            // Add task with assignment
+            taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const taskText = taskInput.value.trim();
+                const assignedUid = assignSelect.value;
+                if (taskText && auth.currentUser) {
+                    const taskData = {
+                        text: taskText,
+                        status: 'pending',
+                        createdBy: currentUserName,
+                        userId: currentUserUid
+                    };
+                    if (assignedUid) {
+                        const assignedUser = users.find(u => u.uid === assignedUid);
+                        taskData.assignedToUid = assignedUid;
+                        taskData.assignedToName = assignedUser.name;
+                    }
+                    push(ref(database, 'tasks'), taskData);
+                    taskInput.value = '';
+                    assignSelect.value = '';
+                }
+            });
+
+            // Load and render tasks with buttons
+            function loadTasks() {
+                const tasksRef = ref(database, 'tasks');
+                onValue(tasksRef, (snapshot) => {
+                    tasksList.innerHTML = '';
+                    snapshot.forEach((childSnapshot) => {
+                        const task = childSnapshot.val();
+                        const taskKey = childSnapshot.key;
+                        const li = document.createElement('li');
+                        let displayText = `${task.text}`;
+                        if (task.assignedToName) displayText += ` (Assigned to: ${task.assignedToName})`;
+                        displayText += ` (Created by: ${task.createdBy})`;
+                        li.textContent = displayText;
+                        if (task.status === 'completed') li.classList.add('completed');
+
+                        const statusDiv = document.createElement('div');
+                        ['pending', 'in-progress', 'completed'].forEach(status => {
+                            const btn = document.createElement('button');
+                            btn.className = 'status-btn';
+                            btn.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                            if (task.status === status) btn.classList.add('active');
+                            btn.addEventListener('click', () => {
+                                const updates = { status: status, userId: currentUserUid };
+                                if (status === 'completed') {
+                                    updates.lastCompletedBy = currentUserName;
+                                }
+                                update(ref(database, 'tasks/' + taskKey), updates);
+                            });
+                            statusDiv.appendChild(btn);
+                        });
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = 'Delete';
+                        deleteBtn.addEventListener('click', () => {
+                            remove(ref(database, 'tasks/' + taskKey));
+                        });
+
+                        li.appendChild(statusDiv);
+                        li.appendChild(deleteBtn);
+                        tasksList.appendChild(li);
+                    });
                 });
+            }
 
-                li.appendChild(statusDiv);
-                li.appendChild(deleteBtn);
-                tasksList.appendChild(li);
+            // Authentication state listener (for initial state or re-auth)
+            onAuthStateChanged(auth, (user) => {
+                if (user && user.isAnonymous) {
+                    authSection.style.display = 'none';
+                    taskSection.style.display = 'block';
+                    usersSection.style.display = 'block';
+                    const userData = users.find(u => u.uid === user.uid);
+                    currentUserName = userData ? userData.name : '';
+                    currentUserUid = user.uid;
+                    if (currentUserName) {
+                        welcomeUser.textContent = `Welcome, ${currentUserName}!`;
+                        loadUsers();
+                        loadTasks();
+                    }
+                } else {
+                    authSection.style.display = 'block';
+                    taskSection.style.display = 'none';
+                    usersSection.style.display = 'none';
+                    welcomeUser.textContent = '';
+                    tasksList.innerHTML = '';
+                    usersList.innerHTML = '';
+                    userName.value = '';
+                    authMessage.textContent = '';
+                }
             });
         });
-    }
-
-    // Authentication state listener (for initial state or re-auth)
-    onAuthStateChanged(auth, (user) => {
-        if (user && user.isAnonymous) {
-            authSection.style.display = 'none';
-            taskSection.style.display = 'block';
-            usersSection.style.display = 'block';
-            const userData = users.find(u => u.uid === user.uid);
-            currentUserName = userData ? userData.name : '';
-            currentUserUid = user.uid;
-            if (currentUserName) {
-                welcomeUser.textContent = `Welcome, ${currentUserName}!`;
-                loadUsers();
-                loadTasks();
-            }
-        } else {
-            authSection.style.display = 'block';
-            taskSection.style.display = 'none';
-            usersSection.style.display = 'none';
-            welcomeUser.textContent = '';
-            tasksList.innerHTML = '';
-            usersList.innerHTML = '';
-            userName.value = '';
-            authMessage.textContent = '';
-        }
-    });
-</script>
+    </script>
+</body>
+</html>
